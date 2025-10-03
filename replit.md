@@ -1,106 +1,170 @@
-# Overview
+# Andhra Pradesh Education Analytics Dashboard
 
-This is an education analytics platform designed to predict and prevent student dropout through AI-powered risk assessment. The system tracks student attendance, academic performance, and socio-economic factors to identify at-risk students and recommend targeted interventions. It provides state-level oversight of districts, analyzes government scheme effectiveness, and monitors DLI (Disbursement Linked Indicators) for educational programs.
+## Project Overview
+A comprehensive dropout risk prediction dashboard for the Andhra Pradesh Education project, featuring AI-powered data analysis, real-time monitoring, and intervention management.
 
-# User Preferences
+## Purpose
+Track and predict student dropout risk across Andhra Pradesh districts using AI/ML models, monitor government education schemes, and manage interventions for at-risk students.
 
-Preferred communication style: Simple, everyday language.
+## Tech Stack
+- **Frontend**: React 18 + TypeScript + Vite
+- **Backend**: Express.js + Node.js
+- **Database**: PostgreSQL (Neon) with Drizzle ORM
+- **UI Framework**: Tailwind CSS + shadcn/ui components
+- **AI/ML**: OpenAI API for dropout risk prediction
+- **Charts**: Recharts for data visualization
+- **Forms**: React Hook Form + Zod validation
+- **State Management**: TanStack Query (React Query v5)
 
-# System Architecture
+## Key Features
 
-## Frontend Architecture
+### 1. AI-Powered Data Upload System (Highlighted Feature)
+- CSV/Excel file upload with drag-and-drop interface
+- Automatic data validation and error detection
+- AI-powered analysis using OpenAI for dropout risk prediction
+- Batch processing with progress tracking
+- File upload history and status tracking
 
-**Technology Stack**: React 18 with TypeScript, using Wouter for client-side routing and TanStack Query for server state management.
+### 2. Dashboard & Analytics
+- State-level enrollment and dropout statistics
+- District-wise risk analysis with color-coded alerts
+- Government scheme coverage and beneficiary tracking
+- Trend visualization and comparative analysis
 
-**UI Framework**: Shadcn UI components built on Radix UI primitives with Tailwind CSS for styling. The design system uses CSS variables for theming with support for light/dark modes.
+### 3. AI Risk Prediction
+- Student-level dropout risk assessment
+- Risk factors identification and analysis
+- Personalized intervention recommendations
+- Batch prediction support
 
-**State Management**: TanStack React Query handles all server state with aggressive caching (`staleTime: Infinity`). No global client state management library - component state is managed locally with React hooks.
+### 4. Real-Time Monitoring
+- Live alert system for critical student situations
+- System health monitoring
+- Automated notifications for high-risk students
+- Alert categorization (Critical, Warning, Info)
 
-**Component Structure**: 
-- Page components in `client/src/pages/` handle routing and data fetching
-- Layout components (`Sidebar`, `Header`) provide navigation and application shell
-- Reusable chart components use Recharts library for data visualization
-- File upload features use react-dropzone for drag-and-drop functionality
+### 5. Intervention Tracker
+- Track interventions for at-risk students
+- Measure intervention effectiveness
+- Schedule and manage follow-ups
+- Status tracking (In Progress, Completed, Cancelled)
 
-**Responsive Design**: Mobile-first approach with collapsible sidebar, mobile menu overlay, and breakpoint at 768px (defined in `use-mobile` hook).
+### 6. DLI Indicators
+- Disbursement-Linked Indicators monitoring
+- Target vs. achievement tracking
+- Quarterly reporting
+- Performance visualization
 
-## Backend Architecture
+### 7. Scheme Analytics
+- Government scheme effectiveness analysis
+- Beneficiary coverage tracking
+- Scheme comparison and trends
 
-**Technology Stack**: Express.js server with TypeScript, using ESM modules throughout.
+## Project Architecture
 
-**API Design**: RESTful endpoints under `/api` prefix:
-- `/api/districts` - District management
-- `/api/students` - Student records and risk assessments
-- `/api/interventions` - Intervention tracking
-- `/api/schemes` - Government scheme analytics
-- `/api/upload` - File upload with AI processing
+### Database Schema
+The application uses PostgreSQL with the following main tables:
+- `districts` - Andhra Pradesh districts with risk metrics
+- `students` - Student records with academic and demographic data
+- `schemes` - Government education schemes
+- `scheme_enrollments` - Student enrollment in schemes
+- `interventions` - Intervention records for at-risk students
+- `uploaded_files` - File upload tracking and AI analysis results
+- `alerts` - Real-time alert system
+- `dli_indicators` - DLI performance tracking
 
-**File Processing**: Multer middleware handles file uploads with 50MB limit. Supports CSV, XLS, and XLSX formats. PapaCSV and XLSX libraries parse uploaded data.
+### Application Pages
+1. **Dashboard** (`/`) - State overview with key metrics
+2. **Scheme Analytics** (`/scheme-analytics`) - Government scheme analysis
+3. **AI Risk Prediction** (`/ai-risk-prediction`) - AI-powered dropout predictions
+4. **Data Upload** (`/data-upload`) - AI-powered file upload system
+5. **Real-Time Monitoring** (`/real-time-monitoring`) - Live alerts and monitoring
+6. **DLI Indicators** (`/dli-indicators`) - DLI performance tracking
+7. **Intervention Tracker** (`/intervention-tracker`) - Intervention management
 
-**AI Integration**: OpenAI API integration for predictive analytics via `AIPredictionService`. The service validates student data and generates risk predictions with confidence scores and recommendations.
+## Development Setup
 
-**Data Validation**: Zod schemas (via drizzle-zod) validate all incoming data against database schema definitions.
+### Running the Application
+```bash
+npm run dev
+```
+This starts both the Express backend and Vite frontend on port 5000.
 
-**Build System**: Vite for frontend bundling, esbuild for backend compilation. Development mode uses Vite middleware for HMR. Production builds static frontend to `dist/public` and bundles backend to `dist/index.js`.
+### Database Operations
+```bash
+# Push schema changes to database
+npm run db:push
 
-## Database Architecture
+# Force push schema (use when migrations fail)
+npm run db:push --force
+```
 
-**ORM**: Drizzle ORM with PostgreSQL dialect (configured for Neon serverless).
+### Environment Variables
+Required secrets (configured in Replit):
+- `DATABASE_URL` - PostgreSQL connection string
+- `SESSION_SECRET` - Express session secret
+- `OPENAI_API_KEY` - OpenAI API key for AI predictions (optional but recommended)
 
-**Schema Design**:
-- `users` - Authentication (username/password)
-- `districts` - Geographic regions with risk metrics
-- `students` - Core student data with risk scores and demographic information
-- `schemes` - Government programs (mid-day meal, uniforms, etc.)
-- `schemeEnrollments` - Many-to-many relationship between students and schemes
-- `interventions` - Tracking of support actions for at-risk students
-- `alerts` - System notifications with read/unread status
-- `dliIndicators` - Disbursement Linked Indicators for program monitoring
-- `uploadedFiles` - Audit trail for data imports
+## Sample Data
+The database is seeded with:
+- **13 districts** from Andhra Pradesh (Krishna, Guntur, Visakhapatnam, etc.)
+- **7 government schemes** (Mid-Day Meal, Jagananna Vidya Deevena, Amma Vodi, etc.)
+- **8 sample students** with varying risk levels
+- **6 DLI indicators** for FY 2024-25 Q2
 
-**Key Relationships**:
-- Students belong to districts (foreign key relationship)
-- Interventions link to students
-- Scheme enrollments create many-to-many between students and schemes
+## UI Design
+- **Color Scheme**: Professional blue theme matching AP government branding
+- **Primary Color**: Blue (#3b82f6)
+- **Responsive**: Mobile-first design with collapsible sidebar
+- **Components**: shadcn/ui for consistent, accessible UI components
+- **Icons**: Lucide React for action icons
 
-**Data Types**: Uses decimals for precision-critical fields (attendance, performance, risk scores). UUID primary keys generated via PostgreSQL's `gen_random_uuid()`.
+## Code Conventions
 
-**Storage Layer**: Abstracted via `IStorage` interface in `server/storage.ts`, allowing for future implementation swapping while maintaining consistent API.
+### Frontend
+- Use TypeScript for all components
+- React Query for all data fetching with proper type annotations
+- React Hook Form + Zod for form validation
+- Tailwind CSS for styling (avoid custom CSS when possible)
+- Add `data-testid` attributes for interactive elements
 
-# External Dependencies
+### Backend
+- Keep routes thin - business logic in storage layer
+- Validate all inputs using Zod schemas
+- Use storage interface for all CRUD operations
+- Return proper HTTP status codes and error messages
 
-## Database Service
-- **Neon Serverless PostgreSQL**: Managed PostgreSQL with WebSocket support for serverless environments
-- Connection pooling via `@neondatabase/serverless` package
-- Requires `DATABASE_URL` environment variable
+### Type Safety
+- Define types in `shared/schema.ts` for consistency
+- Use Drizzle schema types (`$inferSelect`) for database records
+- Use Zod inferred types (`z.infer`) for insert operations
+- Type all API responses in React Query hooks
 
-## AI/ML Services
-- **OpenAI API**: Used for student dropout risk prediction and data analysis
-- Requires `OPENAI_API_KEY` environment variable
-- Currently configured for GPT-5 model (per inline comment in ai-prediction service)
+## Recent Changes (October 2025)
+- Fixed Tailwind CSS opacity modifier errors in utility classes
+- Added TypeScript type annotations to all API response queries
+- Installed missing type packages (@types/multer, @types/papaparse)
+- Seeded database with comprehensive sample data
+- Fixed iterator compatibility issues in AI prediction service
+- All pages tested and verified working
 
-## UI Component Library
-- **Radix UI**: Accessible component primitives (40+ components imported)
-- **Shadcn UI**: Pre-styled component library built on Radix, configured via `components.json`
+## Testing
+- End-to-end testing using Playwright
+- All 7 main pages verified loading correctly
+- Dashboard statistics and charts rendering properly
+- Data upload interface functional
+- Navigation between pages working smoothly
 
-## Development Tools (Replit-specific)
-- `@replit/vite-plugin-runtime-error-modal`: Error overlay for development
-- `@replit/vite-plugin-cartographer`: Development tool integration
-- `@replit/vite-plugin-dev-banner`: Development environment banner
+## Future Enhancements
+1. Expand file upload testing to cover full upload workflow
+2. Add more comprehensive AI model training data
+3. Implement real-time WebSocket connections for live alerts
+4. Add data export functionality
+5. Enhance DLI indicator automation
 
-## Data Processing
-- **PapaParse**: CSV file parsing
-- **XLSX**: Excel file reading and writing
-- **Multer**: Multipart form data handling for file uploads
-
-## Charting and Visualization
-- **Recharts**: React charting library for data visualization (line charts, pie charts)
-
-## Form Management
-- **React Hook Form**: Form state management with `@hookform/resolvers` for validation
-- **Zod**: Schema validation integrated with React Hook Form
-
-## Styling
-- **Tailwind CSS**: Utility-first CSS framework
-- **class-variance-authority**: Type-safe variant styling
-- **tailwind-merge**: Intelligent Tailwind class merging
+## Notes
+- The application emphasizes the AI-powered data upload system as a key differentiator
+- Uses PostgreSQL development database (production DB managed separately)
+- Designed for Andhra Pradesh Education Department use case
+- Supports multiple districts and government schemes
+- Focus on early intervention for at-risk students
