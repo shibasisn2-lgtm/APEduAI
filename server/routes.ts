@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
 import { aiPredictionService } from "./services/ai-prediction";
+import { alertGenerator } from "./services/alert-generator";
+import { pdfGenerator } from "./services/pdf-generator";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import { z } from "zod";
@@ -74,6 +76,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching schemes:", error);
       res.status(500).json({ message: "Failed to fetch schemes" });
+    }
+  });
+
+  app.get("/api/scheme-analytics", async (req, res) => {
+    try {
+      const analytics = await storage.getSchemeAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching scheme analytics:", error);
+      res.status(500).json({ message: "Failed to fetch scheme analytics" });
     }
   });
 
@@ -179,15 +191,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/upload/:id/status", async (req, res) => {
     try {
-      // In a real implementation, you'd fetch the file status from database
-      // For now, return mock status
+      const uploadedFile = await storage.getUploadedFileById(req.params.id);
+      
+      if (!uploadedFile) {
+        return res.status(404).json({ message: "Upload not found" });
+      }
+
+      const progress = {
+        upload: 100,
+        validation: uploadedFile.status === "Processing" ? 50 : 100,
+        aiPrediction: uploadedFile.status === "Completed" ? 100 : uploadedFile.status === "Processing" ? 25 : 0,
+      };
+
       res.json({
-        status: "Processing",
-        progress: {
-          upload: 100,
-          validation: 78,
-          aiPrediction: 0,
-        },
+        status: uploadedFile.status,
+        progress,
+        recordsProcessed: uploadedFile.recordsProcessed || 0,
+        totalRecords: uploadedFile.totalRecords || 0,
+        validationResults: uploadedFile.validationResults,
+        aiPredictionResults: uploadedFile.aiPredictionResults,
       });
     } catch (error) {
       console.error("Error fetching upload status:", error);
@@ -232,7 +254,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.send(buffer);
   });
 
+  // Alert generation endpoint
+  app.post("/api/alerts/generate", async (req, res) => {
+    try {
+      await alertGenerator.runAllAlertGenerators();
+      res.json({ message: "Alerts generated successfully" });
+    } catch (error) {
+      console.error("Error generating alerts:", error);
+      res.status(500).json({ message: "Failed to generate alerts" });
+    }
+  });
+
+  // PDF report generation endpoints
+  app.get("/api/reports/district/:districtId", async (req, res) => {
+    try {
+      const pdfBuffer = await pdfGenerator.generateDistrictReport(req.params.districtId);
+      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename=district_report_${req.params.districtId}.pdf`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating district report:", error);
+      res.status(500).json({ message: "Failed to generate district report" });
+    }
+  });
+
+  app.get("/api/reports/state", async (req, res) => {
+    try {
+      const pdfBuffer = await pdfGenerator.generateStateReport();
+      
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", "attachment; filename=state_report.pdf");
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating state report:", error);
+      res.status(500).json({ message: "Failed to generate state report" });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  setInterval(async () => {
+    try {
+      await alertGenerator.runAllAlertGenerators();
+    } catch (error) {
+      console.error("Scheduled alert generation failed:", error);
+    }
+  }, 3600000);
+
   return httpServer;
 }
 
