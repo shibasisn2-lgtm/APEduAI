@@ -8,6 +8,13 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role").notNull().default("District Official"), // State Administrator, District Official, Data Analyst
+  districtId: varchar("district_id").references(() => districts.id), // null for State Administrators
+  email: text("email").notNull().unique(),
+  fullName: text("full_name").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const districts = pgTable("districts", {
@@ -167,9 +174,10 @@ export const dliIndicatorsRelations = relations(dliIndicators, ({ one }) => ({
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertDistrictSchema = createInsertSchema(districts).omit({

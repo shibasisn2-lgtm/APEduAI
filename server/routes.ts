@@ -5,10 +5,12 @@ import { storage } from "./storage";
 import { aiPredictionService } from "./services/ai-prediction";
 import { alertGenerator } from "./services/alert-generator";
 import { pdfGenerator } from "./services/pdf-generator";
+import { requireAuth, requireRole, requireDistrictAccess } from "./middleware/auth";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import { z } from "zod";
 import { insertStudentSchema, insertDistrictSchema, insertInterventionSchema } from "@shared/schema";
+import bcrypt from "bcryptjs";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -16,10 +18,123 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // State overview endpoints
-  app.get("/api/districts", async (req, res) => {
+  // Authentication endpoints
+  const registerSchema = z.object({
+    username: z.string().min(3).max(50),
+    password: z.string().min(6),
+    email: z.string().email(),
+    fullName: z.string().min(1),
+    role: z.enum(["State Administrator", "District Official", "Data Analyst"]).optional(),
+    districtId: z.string().optional(),
+  });
+
+  app.post("/api/auth/register", requireAuth, requireRole("State Administrator"), async (req: any, res) => {
     try {
-      const districts = await storage.getAllDistricts();
+      const validated = registerSchema.parse(req.body);
+      
+      const existingUser = await storage.getUserByUsername(validated.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      const hashedPassword = await bcrypt.hash(validated.password, 10);
+      
+      const user = await storage.createUser({
+        username: validated.username,
+        password: hashedPassword,
+        email: validated.email,
+        fullName: validated.fullName,
+        role: validated.role || "District Official",
+        districtId: validated.districtId || null,
+        isActive: true,
+      });
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.status(201).json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Error registering user:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to register user" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const loginSchema = z.object({
+        username: z.string(),
+        password: z.string(),
+      });
+      
+      const validated = loginSchema.parse(req.body);
+      
+      const user = await storage.getUserByUsername(validated.username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      const isValidPassword = await bcrypt.compare(validated.password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      if (!user.isActive) {
+        return res.status(403).json({ message: "Account is inactive" });
+      }
+      
+      req.session.regenerate((err) => {
+        if (err) {
+          return res.status(500).json({ message: "Failed to create session" });
+        }
+        
+        req.session.userId = user.id;
+        
+        const { password: _, ...userWithoutPassword } = user;
+        res.json({ user: userWithoutPassword });
+      });
+    } catch (error) {
+      console.error("Error logging in:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error" });
+      }
+      res.status(500).json({ message: "Failed to log in" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/auth/me", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // State overview endpoints
+  app.get("/api/districts", requireAuth, async (req: any, res) => {
+    try {
+      let districts = await storage.getAllDistricts();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        districts = districts.filter(d => d.id === req.user.districtId);
+      }
+      
       res.json(districts);
     } catch (error) {
       console.error("Error fetching districts:", error);
@@ -27,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/statistics", async (req, res) => {
+  app.get("/api/statistics", requireAuth, async (req, res) => {
     try {
       const stats = await storage.getStateStatistics();
       res.json(stats);
@@ -37,9 +152,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/district-analysis", async (req, res) => {
+  app.get("/api/district-analysis", requireAuth, async (req: any, res) => {
     try {
-      const analysis = await storage.getDistrictRiskAnalysis();
+      let analysis = await storage.getDistrictRiskAnalysis();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        analysis = analysis.filter(a => a.district.id === req.user.districtId);
+      }
+      
       res.json(analysis);
     } catch (error) {
       console.error("Error fetching district analysis:", error);
@@ -48,9 +168,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Students endpoints
-  app.get("/api/students", async (req, res) => {
+  app.get("/api/students", requireAuth, async (req: any, res) => {
     try {
-      const students = await storage.getAllStudents();
+      let students = await storage.getAllStudents();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        students = students.filter(s => s.districtId === req.user.districtId);
+      }
+      
       res.json(students);
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -58,9 +183,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/students/high-risk", async (req, res) => {
+  app.get("/api/students/high-risk", requireAuth, async (req: any, res) => {
     try {
-      const highRiskStudents = await storage.getHighRiskStudents();
+      let highRiskStudents = await storage.getHighRiskStudents();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        highRiskStudents = highRiskStudents.filter(s => s.districtId === req.user.districtId);
+      }
+      
       res.json(highRiskStudents);
     } catch (error) {
       console.error("Error fetching high-risk students:", error);
@@ -69,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Schemes endpoints
-  app.get("/api/schemes", async (req, res) => {
+  app.get("/api/schemes", requireAuth, async (req, res) => {
     try {
       const schemes = await storage.getAllSchemes();
       res.json(schemes);
@@ -79,9 +209,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/scheme-analytics", async (req, res) => {
+  app.get("/api/scheme-analytics", requireAuth, async (req: any, res) => {
     try {
-      const analytics = await storage.getSchemeAnalytics();
+      let analytics = await storage.getSchemeAnalytics();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        const district = await storage.getDistrictById(req.user.districtId);
+        if (district) {
+          analytics = analytics.map(a => ({
+            ...a,
+            districtCoverage: a.districtCoverage.filter(dc => dc.districtName === district.name)
+          }));
+        }
+      }
+      
       res.json(analytics);
     } catch (error) {
       console.error("Error fetching scheme analytics:", error);
@@ -90,9 +231,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Interventions endpoints
-  app.get("/api/interventions", async (req, res) => {
+  app.get("/api/interventions", requireAuth, async (req: any, res) => {
     try {
-      const interventions = await storage.getAllInterventions();
+      let interventions = await storage.getAllInterventions();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        const districtStudents = await storage.getStudentsByDistrict(req.user.districtId);
+        const districtStudentIds = districtStudents.map(s => s.id);
+        interventions = interventions.filter(i => districtStudentIds.includes(i.studentId));
+      }
+      
       res.json(interventions);
     } catch (error) {
       console.error("Error fetching interventions:", error);
@@ -100,21 +248,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/interventions", async (req, res) => {
+  app.post("/api/interventions", requireAuth, requireRole("State Administrator", "District Official"), async (req: any, res) => {
     try {
       const validatedData = insertInterventionSchema.parse(req.body);
+      
+      if (req.user.role === "District Official") {
+        const student = await storage.getAllStudents().then(students => 
+          students.find(s => s.id === validatedData.studentId)
+        );
+        
+        if (!student || student.districtId !== req.user.districtId) {
+          return res.status(403).json({ message: "Cannot create interventions for students in other districts" });
+        }
+      }
+      
       const intervention = await storage.createIntervention(validatedData);
       res.json(intervention);
     } catch (error) {
       console.error("Error creating intervention:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
       res.status(400).json({ message: "Invalid intervention data" });
     }
   });
 
   // Alerts endpoints
-  app.get("/api/alerts", async (req, res) => {
+  app.get("/api/alerts", requireAuth, async (req: any, res) => {
     try {
-      const alerts = await storage.getAllAlerts();
+      let alerts = await storage.getAllAlerts();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        alerts = alerts.filter(alert => alert.districtId === req.user.districtId);
+      }
+      
       res.json(alerts);
     } catch (error) {
       console.error("Error fetching alerts:", error);
@@ -122,9 +289,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/alerts/unread", async (req, res) => {
+  app.get("/api/alerts/unread", requireAuth, async (req: any, res) => {
     try {
-      const unreadAlerts = await storage.getUnreadAlerts();
+      let unreadAlerts = await storage.getUnreadAlerts();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        unreadAlerts = unreadAlerts.filter(alert => alert.districtId === req.user.districtId);
+      }
+      
       res.json(unreadAlerts);
     } catch (error) {
       console.error("Error fetching unread alerts:", error);
@@ -132,10 +304,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/alerts/:id/read", async (req, res) => {
+  app.patch("/api/alerts/:id/read", requireAuth, requireRole("State Administrator", "District Official"), async (req: any, res) => {
     try {
-      const alert = await storage.markAlertAsRead(req.params.id);
-      res.json(alert);
+      const alerts = await storage.getAllAlerts();
+      const alert = alerts.find(a => a.id === req.params.id);
+      
+      if (!alert) {
+        return res.status(404).json({ message: "Alert not found" });
+      }
+      
+      if (req.user.role === "District Official" && alert.districtId !== req.user.districtId) {
+        return res.status(403).json({ message: "Cannot mark alerts from other districts as read" });
+      }
+      
+      const updatedAlert = await storage.markAlertAsRead(req.params.id);
+      res.json(updatedAlert);
     } catch (error) {
       console.error("Error marking alert as read:", error);
       res.status(500).json({ message: "Failed to mark alert as read" });
@@ -143,9 +326,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DLI Indicators endpoints
-  app.get("/api/dli-indicators", async (req, res) => {
+  app.get("/api/dli-indicators", requireAuth, async (req: any, res) => {
     try {
-      const indicators = await storage.getAllDliIndicators();
+      let indicators = await storage.getAllDliIndicators();
+      
+      if (req.user.role === "District Official" && req.user.districtId) {
+        indicators = indicators.filter(ind => ind.districtId === req.user.districtId);
+      }
+      
       res.json(indicators);
     } catch (error) {
       console.error("Error fetching DLI indicators:", error);
@@ -154,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // File upload and AI prediction endpoints
-  app.post("/api/upload", upload.single("file"), async (req, res) => {
+  app.post("/api/upload", requireAuth, requireRole("State Administrator", "District Official"), upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });
@@ -189,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/upload/:id/status", async (req, res) => {
+  app.get("/api/upload/:id/status", requireAuth, async (req, res) => {
     try {
       const uploadedFile = await storage.getUploadedFileById(req.params.id);
       
@@ -217,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/uploads/recent", async (req, res) => {
+  app.get("/api/uploads/recent", requireAuth, async (req, res) => {
     try {
       const recentUploads = await storage.getUploadedFiles();
       res.json(recentUploads);
@@ -228,7 +416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download template endpoint
-  app.get("/api/template/download", (req, res) => {
+  app.get("/api/template/download", requireAuth, (req, res) => {
     const templateData = [
       {
         studentId: "ST2024-0001",
@@ -255,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Alert generation endpoint
-  app.post("/api/alerts/generate", async (req, res) => {
+  app.post("/api/alerts/generate", requireAuth, requireRole("State Administrator"), async (req, res) => {
     try {
       await alertGenerator.runAllAlertGenerators();
       res.json({ message: "Alerts generated successfully" });
@@ -266,7 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PDF report generation endpoints
-  app.get("/api/reports/district/:districtId", async (req, res) => {
+  app.get("/api/reports/district/:districtId", requireAuth, requireDistrictAccess, async (req, res) => {
     try {
       const pdfBuffer = await pdfGenerator.generateDistrictReport(req.params.districtId);
       
@@ -279,7 +467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/state", async (req, res) => {
+  app.get("/api/reports/state", requireAuth, requireRole("State Administrator", "Data Analyst"), async (req, res) => {
     try {
       const pdfBuffer = await pdfGenerator.generateStateReport();
       
@@ -289,6 +477,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating state report:", error);
       res.status(500).json({ message: "Failed to generate state report" });
+    }
+  });
+
+  // Third-party integration API endpoints
+  app.post("/api/external/students", requireAuth, requireRole("State Administrator", "District Official"), async (req: any, res) => {
+    try {
+      const validatedStudent = insertStudentSchema.parse(req.body);
+      
+      if (req.user.role === "District Official" && req.user.districtId !== validatedStudent.districtId) {
+        return res.status(403).json({ message: "Cannot create students for other districts" });
+      }
+      
+      const student = await storage.createStudent(validatedStudent);
+      res.status(201).json(student);
+    } catch (error) {
+      console.error("Error creating student via API:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(400).json({ message: "Failed to create student", error });
+    }
+  });
+
+  app.get("/api/external/students/:districtId", requireAuth, requireDistrictAccess, async (req, res) => {
+    try {
+      const students = await storage.getStudentsByDistrict(req.params.districtId);
+      res.json(students);
+    } catch (error) {
+      console.error("Error fetching students via API:", error);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
+  app.post("/api/external/interventions", requireAuth, requireRole("State Administrator", "District Official"), async (req: any, res) => {
+    try {
+      const validatedIntervention = insertInterventionSchema.parse(req.body);
+      
+      const student = await storage.getAllStudents().then(students => 
+        students.find(s => s.id === validatedIntervention.studentId)
+      );
+      
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      if (req.user.role === "District Official" && req.user.districtId !== student.districtId) {
+        return res.status(403).json({ message: "Cannot create interventions for students in other districts" });
+      }
+      
+      const intervention = await storage.createIntervention(validatedIntervention);
+      res.status(201).json(intervention);
+    } catch (error) {
+      console.error("Error creating intervention via API:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(400).json({ message: "Failed to create intervention", error });
+    }
+  });
+
+  app.get("/api/external/statistics", requireAuth, requireRole("State Administrator", "Data Analyst"), async (req, res) => {
+    try {
+      const stats = await storage.getStateStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics via API:", error);
+      res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+
+  app.get("/api/external/alerts", requireAuth, async (req: any, res) => {
+    try {
+      let alerts = await storage.getUnreadAlerts();
+      
+      if (req.user.role === "District Official") {
+        alerts = alerts.filter(alert => alert.districtId === req.user.districtId);
+      }
+      
+      res.json(alerts);
+    } catch (error) {
+      console.error("Error fetching alerts via API:", error);
+      res.status(500).json({ message: "Failed to fetch alerts" });
     }
   });
 

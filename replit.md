@@ -60,10 +60,17 @@ Track and predict student dropout risk across Andhra Pradesh districts using AI/
 - Beneficiary coverage tracking
 - Scheme comparison and trends
 
+### 8. Role-Based Access Control (RBAC)
+- Multi-role authentication system
+- Three user roles: State Administrator, District Official, Data Analyst
+- Permission-based access to features and data
+- District-scoped data access for District Officials
+
 ## Project Architecture
 
 ### Database Schema
 The application uses PostgreSQL with the following main tables:
+- `users` - User accounts with role-based permissions
 - `districts` - Andhra Pradesh districts with risk metrics
 - `students` - Student records with academic and demographic data
 - `schemes` - Government education schemes
@@ -72,6 +79,11 @@ The application uses PostgreSQL with the following main tables:
 - `uploaded_files` - File upload tracking and AI analysis results
 - `alerts` - Real-time alert system
 - `dli_indicators` - DLI performance tracking
+
+### User Roles
+1. **State Administrator** - Full system access, can view all districts, manage users
+2. **District Official** - Limited to own district data, can manage interventions
+3. **Data Analyst** - Read-only access, can generate reports and view analytics
 
 ### Application Pages
 1. **Dashboard** (`/`) - State overview with key metrics
@@ -141,9 +153,13 @@ The database is seeded with:
 - Type all API responses in React Query hooks
 
 ## Recent Changes (October 2025)
+- **Phase 1 - Data Integrity**: Replaced all mock data with real database calculations
+- **Phase 2 - Alert System**: Implemented automated alert generation with proper deduplication
+- **Phase 3 - PDF Reports**: Added district and state-level PDF report generation
+- **Phase 4 - RBAC**: Implemented role-based access control with three user types
 - Fixed Tailwind CSS opacity modifier errors in utility classes
 - Added TypeScript type annotations to all API response queries
-- Installed missing type packages (@types/multer, @types/papaparse)
+- Installed missing type packages (@types/multer, @types/papaparse, @types/pdfkit)
 - Seeded database with comprehensive sample data
 - Fixed iterator compatibility issues in AI prediction service
 - All pages tested and verified working
