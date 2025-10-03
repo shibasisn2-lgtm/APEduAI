@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(210, 20%, 98%);
+  --foreground: hsl(215, 25%, 15%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(215, 25%, 15%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(215, 25%, 15%);
+  --primary: hsl(215, 85%, 45%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(215, 75%, 25%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --accent: hsl(180, 75%, 45%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --muted: hsl(215, 15%, 95%);
+  --muted-foreground: hsl(215, 15%, 65%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(215, 15%, 90%);
+  --input: hsl(215, 15%, 90%);
+  --ring: hsl(215, 85%, 45%);
+  --success: hsl(142, 76%, 36%);
+  --warning: hsl(38, 92%, 50%);
+  --danger: hsl(0, 84%, 60%);
+  --radius: 0.5rem;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.dark {
+  --background: hsl(215, 25%, 5%);
+  --foreground: hsl(210, 20%, 95%);
+  --card: hsl(215, 25%, 8%);
+  --card-foreground: hsl(210, 20%, 95%);
+  --popover: hsl(215, 25%, 8%);
+  --popover-foreground: hsl(210, 20%, 95%);
+  --primary: hsl(215, 85%, 50%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(215, 15%, 20%);
+  --secondary-foreground: hsl(210, 20%, 95%);
+  --accent: hsl(180, 75%, 50%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --muted: hsl(215, 15%, 15%);
+  --muted-foreground: hsl(215, 15%, 55%);
+  --border: hsl(215, 15%, 20%);
+  --input: hsl(215, 15%, 20%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: var(--font-sans);
+  }
+}
+
+@layer utilities {
+  .risk-low {
+    @apply bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400;
+  }
+
+  .risk-medium {
+    @apply bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400;
+  }
+
+  .risk-high {
+    @apply bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400;
+  }
+
+  .stat-card {
+    @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .nav-link {
+    @apply transition-all duration-200 hover:bg-primary/10 hover:text-primary;
+  }
+
+  .nav-link.active {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .upload-zone {
+    @apply border-2 border-dashed border-border transition-all duration-300;
+  }
+
+  .upload-zone:hover {
+    @apply border-primary bg-primary/5;
+  }
+
+  .upload-zone.drag-over {
+    @apply border-primary bg-primary/10;
+  }
+
+  .ai-pulse {
+    @apply animate-pulse;
+  }
+
+  .sidebar-collapsed {
+    width: 80px;
+  }
+
+  .sidebar-expanded {
+    width: 280px;
+  }
+
+  @media (max-width: 768px) {
+    .sidebar-expanded {
+      width: 100%;
+    }
+  }
+}
