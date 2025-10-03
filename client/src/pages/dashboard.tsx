@@ -10,17 +10,33 @@ import {
   ArrowDown
 } from "lucide-react";
 import DropoutTrendChart from "@/components/charts/dropout-trend-chart";
+import type { District, Scheme } from "@shared/schema";
+
+interface StateStatistics {
+  primaryEnrollment: number;
+  secondaryEnrollment: number;
+  dropoutRate: number;
+  atRiskPercentage: number;
+}
+
+interface DistrictAnalysis {
+  district: District;
+  totalStudents: number;
+  atRiskStudents: number;
+  riskPercentage: number;
+  riskLevel: string;
+}
 
 export default function Dashboard() {
-  const { data: statistics, isLoading: statsLoading } = useQuery({
+  const { data: statistics, isLoading: statsLoading } = useQuery<StateStatistics>({
     queryKey: ["/api/statistics"],
   });
 
-  const { data: districtAnalysis, isLoading: districtLoading } = useQuery({
+  const { data: districtAnalysis, isLoading: districtLoading } = useQuery<DistrictAnalysis[]>({
     queryKey: ["/api/district-analysis"],
   });
 
-  const { data: schemes } = useQuery({
+  const { data: schemes } = useQuery<Scheme[]>({
     queryKey: ["/api/schemes"],
   });
 

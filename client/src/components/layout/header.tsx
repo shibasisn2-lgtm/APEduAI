@@ -1,6 +1,7 @@
 import { Bell, Menu, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import type { Alert } from "@shared/schema";
 
 interface HeaderProps {
   onMobileMenuToggle?: () => void;
@@ -8,7 +9,7 @@ interface HeaderProps {
 }
 
 export default function Header({ onMobileMenuToggle, onSidebarToggle }: HeaderProps) {
-  const { data: unreadAlerts } = useQuery({
+  const { data: unreadAlerts } = useQuery<Alert[]>({
     queryKey: ["/api/alerts/unread"],
     refetchInterval: 30000, // Refetch every 30 seconds
   });

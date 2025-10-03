@@ -78,7 +78,11 @@
   }
 
   .nav-link {
-    @apply transition-all duration-200 hover:bg-primary/10 hover:text-primary;
+    @apply transition-all duration-200 hover:text-primary;
+  }
+  
+  .nav-link:hover {
+    background-color: hsl(var(--primary) / 0.1);
   }
 
   .nav-link.active {
@@ -90,11 +94,13 @@
   }
 
   .upload-zone:hover {
-    @apply border-primary bg-primary/5;
+    @apply border-primary;
+    background-color: hsl(var(--primary) / 0.05);
   }
 
   .upload-zone.drag-over {
-    @apply border-primary bg-primary/10;
+    @apply border-primary;
+    background-color: hsl(var(--primary) / 0.1);
   }
 
   .ai-pulse {

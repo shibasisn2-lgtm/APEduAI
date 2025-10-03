@@ -12,14 +12,15 @@ import {
   ExternalLink 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Alert } from "@shared/schema";
 
 export default function RealTimeMonitoring() {
-  const { data: alerts, isLoading: alertsLoading } = useQuery({
+  const { data: alerts, isLoading: alertsLoading } = useQuery<Alert[]>({
     queryKey: ["/api/alerts"],
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const { data: unreadAlerts } = useQuery({
+  const { data: unreadAlerts } = useQuery<Alert[]>({
     queryKey: ["/api/alerts/unread"],
     refetchInterval: 10000, // Refetch every 10 seconds
   });

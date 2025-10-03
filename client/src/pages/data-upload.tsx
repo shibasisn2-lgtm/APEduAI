@@ -8,6 +8,7 @@ import ProcessingStatus from "@/components/data-upload/processing-status";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { UploadedFile } from "@shared/schema";
 
 export default function DataUpload() {
   const [uploadOptions, setUploadOptions] = useState({
@@ -20,7 +21,7 @@ export default function DataUpload() {
   
   const { toast } = useToast();
   
-  const { data: recentUploads } = useQuery({
+  const { data: recentUploads } = useQuery<UploadedFile[]>({
     queryKey: ["/api/uploads/recent"],
   });
 

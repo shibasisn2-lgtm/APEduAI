@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { File, AlertTriangle } from "lucide-react";
 import RiskDistributionChart from "@/components/charts/risk-distribution-chart";
+import type { Student } from "@shared/schema";
 
 export default function AiRiskPrediction() {
-  const { data: highRiskStudents, isLoading } = useQuery({
+  const { data: highRiskStudents, isLoading } = useQuery<Student[]>({
     queryKey: ["/api/students/high-risk"],
   });
 

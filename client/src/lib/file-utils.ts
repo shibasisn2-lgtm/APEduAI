@@ -44,12 +44,12 @@ export class FileUtils {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
+        complete: (results: Papa.ParseResult<any>) => {
           const errors: string[] = [];
           const warnings: string[] = [];
           
           // Add parsing errors
-          results.errors.forEach(error => {
+          results.errors.forEach((error: Papa.ParseError) => {
             errors.push(`Row ${error.row}: ${error.message}`);
           });
 
@@ -66,7 +66,7 @@ export class FileUtils {
             validRecords: validationResult.isValid ? results.data.length : 0,
           });
         },
-        error: (error) => {
+        error: (error: Error) => {
           resolve({
             data: [],
             errors: [`CSV parsing failed: ${error.message}`],

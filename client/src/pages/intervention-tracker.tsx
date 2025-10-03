@@ -16,15 +16,16 @@ import {
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { Intervention, Student } from "@shared/schema";
 
 export default function InterventionTracker() {
   const { toast } = useToast();
   
-  const { data: interventions, isLoading } = useQuery({
+  const { data: interventions, isLoading } = useQuery<Intervention[]>({
     queryKey: ["/api/interventions"],
   });
 
-  const { data: students } = useQuery({
+  const { data: students } = useQuery<Student[]>({
     queryKey: ["/api/students"],
   });
 

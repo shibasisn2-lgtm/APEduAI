@@ -230,10 +230,12 @@ export class AIPredictionService {
         acc[p.primaryRiskFactor] = (acc[p.primaryRiskFactor] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
+    
+    const riskFactorKeys = Object.keys(topRiskFactors).sort((a, b) => topRiskFactors[b] - topRiskFactors[a]);
 
     const insights = [
       `${summary.highRisk} students (${((summary.highRisk / summary.totalStudents) * 100).toFixed(1)}%) are at high risk of dropout`,
-      `Most common risk factor: ${Object.keys(topRiskFactors).sort((a, b) => topRiskFactors[b] - topRiskFactors[a])[0]}`,
+      `Most common risk factor: ${riskFactorKeys[0] || 'N/A'}`,
       `Average risk score: ${(predictions.reduce((sum, p) => sum + p.riskScore, 0) / predictions.length).toFixed(1)}%`,
     ];
 
