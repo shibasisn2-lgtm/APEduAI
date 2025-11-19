@@ -11,6 +11,7 @@ import DataUpload from "@/pages/data-upload";
 import RealTimeMonitoring from "@/pages/real-time-monitoring";
 import DliIndicators from "@/pages/dli-indicators";
 import InterventionTracker from "@/pages/intervention-tracker";
+import SalesDashboard from "@/pages/sales-dashboard";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { useState } from "react";
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/real-time-monitoring" component={RealTimeMonitoring} />
       <Route path="/dli-indicators" component={DliIndicators} />
       <Route path="/intervention-tracker" component={InterventionTracker} />
+      <Route path="/sales-dashboard" component={SalesDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

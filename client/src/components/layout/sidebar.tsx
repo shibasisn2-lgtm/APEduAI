@@ -11,6 +11,7 @@ import {
   Landmark, 
   Leaf,
   X,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,7 @@ const navigationItems = [
   { path: "/real-time-monitoring", label: "Real-Time Monitoring", icon: Monitor },
   { path: "/dli-indicators", label: "DLI Indicators", icon: Gauge },
   { path: "/intervention-tracker", label: "Intervention Tracker", icon: ClipboardCheck },
+  { path: "/sales-dashboard", label: "Sales Dashboard", icon: DollarSign },
 ];
 
 export default function Sidebar({ collapsed = false, mobileOpen = false, onMobileClose }: SidebarProps) {
