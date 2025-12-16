@@ -12,6 +12,7 @@ import {
   Leaf,
   X,
   DollarSign,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const navigationItems = [
   { path: "/real-time-monitoring", label: "Real-Time Monitoring", icon: Monitor },
   { path: "/dli-indicators", label: "DLI Indicators", icon: Gauge },
   { path: "/intervention-tracker", label: "Intervention Tracker", icon: ClipboardCheck },
+  { path: "/human-resources", label: "Human Resources", icon: Users },
   { path: "/sales-dashboard", label: "Sales Dashboard", icon: DollarSign },
 ];
 
